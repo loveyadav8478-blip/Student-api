@@ -22,14 +22,18 @@ func New() http.HandlerFunc {
 
 		if errors.Is(err, io.EOF) {
 			response.WriteJson(w, http.StatusBadRequest, response.GeneralResponse(fmt.Errorf("empty body!!")))
+			return
 		}
 		if err != nil {
 			response.WriteJson(w, http.StatusBadRequest, response.GeneralResponse(err))
+			return
 		}
 
 		// Request validator
 		if err := validator.New().Struct(student); err != nil {
-			response.GeneralResponse(err)
+			validationErrors := err.(validator.ValidationErrors)
+			response.WriteJson(w, http.StatusBadRequest,response.ValidationError(validationErrors))
+			return
 		}
 
 
