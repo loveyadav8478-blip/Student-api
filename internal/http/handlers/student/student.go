@@ -54,3 +54,11 @@ func New(storage storage.Storage) http.HandlerFunc {
 
 	}
 }
+
+
+func GetById(storage storage.Storage) http.HandlerFunc{
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := r.PathValue("id")
+		slog.Info("Getting a student", slog.String("id",id))
+	}
+}

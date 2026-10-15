@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-
 	"github.com/loveyadav8478-blip/student-api/internal/config"
 	"github.com/loveyadav8478-blip/student-api/internal/http/handlers/student"
 	"github.com/loveyadav8478-blip/student-api/internal/storage/sqlite"
@@ -21,39 +20,43 @@ func main() {
 	// database setup
 
 	storage, err := sqlite.New(cfg)
-	
-	if err!=nil{
+
+	if err != nil {
 		log.Fatal(err)
 	}
 	slog.Info("storage initialized", slog.String("env", cfg.Env), slog.String("version", "1.22"))
 
-
 	// setup router
 	router := http.NewServeMux()
 
-	router.HandleFunc("POST /api/students",student.New(storage))
+	router.HandleFunc("POST /api/students", student.New(storage))
+
+	router.HandleFunc("GET /api/students/{id}", student.GetById(storage))
+
+	router.HandleFunc("PUT /api/students/{id}", student.UpdateByID(storage))
+	router.HandleFunc("DELETE /api/students/{id}", student.DeleteByID(storage))
 
 	// Setup server
 
 	server := http.Server{
-		Addr: cfg.Addr,
+		Addr:    cfg.Addr,
 		Handler: router,
 	}
-	slog.Info("server started", slog.String("address",cfg.Addr))
+	slog.Info("server started", slog.String("address", cfg.Addr))
 
-	done := make(chan os.Signal,1)
-	
-	signal.Notify(done,os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	done := make(chan os.Signal, 1)
 
-	go func(){
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
 		err := server.ListenAndServe()
 
-		if err!=nil{
+		if err != nil {
 			log.Fatal("Failed to start server")
 		}
 	}()
- 	
-	<- done
+
+	<-done
 
 	slog.Info("shutting down the server")
 
@@ -61,11 +64,10 @@ func main() {
 
 	defer cancel()
 
-	
-	if err := server.Shutdown(ctx); err!=nil{
+	if err := server.Shutdown(ctx); err != nil {
 		slog.Error("failed to shutdown the server", slog.String("error", err.Error()))
 	}
 
 	slog.Info("Server shutdown successfully")
-	
+
 }

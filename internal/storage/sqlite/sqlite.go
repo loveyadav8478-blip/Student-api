@@ -2,8 +2,10 @@ package sqlite
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/loveyadav8478-blip/student-api/internal/config"
+	"github.com/loveyadav8478-blip/student-api/internal/types"
 	_ "modernc.org/sqlite"
 )
 
@@ -12,7 +14,7 @@ type Sqlite struct {
 }
 
 func New(cfg *config.Config) (*Sqlite, error) {
-	db, err := sql.Open("sqlite", cfg.StoragePath)   
+	db, err := sql.Open("sqlite", cfg.StoragePath)
 	if err != nil {
 		return nil, err
 	}
@@ -31,30 +33,62 @@ func New(cfg *config.Config) (*Sqlite, error) {
 	return &Sqlite{
 		Db: db,
 	}, nil
-}   
+}
 
-func(s * Sqlite) CreateStudent(name string, email string, age int) (int64, error){
+func (s *Sqlite) CreateStudent(name string, email string, age int) (int64, error) {
 
 	stmt, err := s.Db.Prepare("INSERT INTO students (name, email, age) VALUES (?, ?, ?)")
 
-	if err!=nil{
+	if err != nil {
 		return 0, err
 	}
 
 	defer stmt.Close()
 
-	res,err := stmt.Exec(name,email,age)
+	res, err := stmt.Exec(name, email, age)
 
-	if err!=nil{
-		return 0,err
+	if err != nil {
+		return 0, err
 	}
 
-	lastId,err := res.LastInsertId()
+	lastId, err := res.LastInsertId()
 
-	if err!=nil{
+	if err != nil {
 		return 0, err
 	}
 
 	return lastId, nil
-	
+
 }
+
+func (s *Sqlite) GetStudentById(id int64) (types.Student, error) {
+
+	stmt, err := s.Db.Prepare("SELECT * FROM students WHERE id = ? LIMIT 1")
+
+	if err != nil {
+		return types.Student{}, err
+	}
+
+	defer stmt.Close()
+
+	var student types.Student
+
+	err = stmt.QueryRow(id).Scan(&student.Id, &student.Name, &student.Email, &student.Age)
+
+	if err != nil {
+
+		if err == sql.ErrNoRows {
+			return types.Student{}, fmt.Errorf("no student is found with id %s", fmt.Sprint(id))
+		}
+
+		return types.Student{}, fmt.Errorf("quary error: %w", err)
+	}
+
+	return student, nil
+}
+
+// func(s *Sqlite) UpdateByID(id int64) (types.Student,error){
+// 	var student types.Student
+
+// 	return student, nil
+// }
